@@ -11,6 +11,7 @@ import (
 	"github.com/vulcand/oxy/testutils"
 	"github.com/vulcand/vulcand/plugin"
 	. "gopkg.in/check.v1"
+	"io/ioutil"
 )
 
 func TestRL(t *testing.T) { TestingT(t) }
@@ -95,6 +96,9 @@ func (s *RewriteSuite) TestRewriteMatch(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(re.StatusCode, Equals, http.StatusOK)
 	c.Assert(outURL, Equals, "http://localhost/bar")
+	body, err := ioutil.ReadAll(re.Request.Body)
+	c.Assert(string(body), Equals, string("hello"))
+	c.Assert(err, IsNil)
 }
 
 func (s *RewriteSuite) TestRewriteNoMatch(c *C) {
@@ -115,6 +119,33 @@ func (s *RewriteSuite) TestRewriteNoMatch(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(re.StatusCode, Equals, http.StatusOK)
 	c.Assert(outURL, Equals, "http://localhost/fooo/bar")
+}
+
+//The object of this test is to ensure that if the rewrite doesn't match the regex
+// the request will be forward with the same content
+func (s *RewriteSuite) TestRewriteNoMatchBody(c *C){
+	var outURL string
+	expectedBody := []byte("Expected Body Content")
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		outURL = rawURL(req)
+		w.Write(expectedBody)
+	})
+
+	rh, err := newRewriteHandler(handler, &Rewrite{"^http://localhost/foo/(.*)", "http://localhost$1", false, false})
+	c.Assert(rh, NotNil)
+	c.Assert(err, IsNil)
+
+	srv := httptest.NewServer(rh)
+	defer srv.Close()
+
+	re, body, err := testutils.Get(srv.URL+"/fooo/bar", testutils.Host("localhost"))
+	c.Assert(err, IsNil)
+	c.Assert(re.StatusCode, Equals, http.StatusOK)
+	c.Assert(outURL, Equals, "http://localhost/fooo/bar")
+
+	c.Assert(re.StatusCode, Equals, http.StatusOK)
+	c.Assert(string(body), Equals, string(expectedBody))
 }
 
 func (s *RewriteSuite) TestHeaderVar(c *C) {

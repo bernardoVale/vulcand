@@ -14,6 +14,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/vulcand/oxy/utils"
 	"github.com/vulcand/vulcand/plugin"
+	"io/ioutil"
 )
 
 const Type = "rewrite"
@@ -68,6 +69,8 @@ func (rw *rewriteHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// only continue if the Regexp param matches the URL
 	if !rw.regexp.MatchString(oldURL) {
 		rw.next.ServeHTTP(w, req)
+		body , _ := ioutil.ReadAll(req.Body)
+		fmt.Println("This is the body", string(body))
 		return
 	}
 
@@ -100,8 +103,14 @@ func (rw *rewriteHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if !rw.rewriteBody {
 		rw.next.ServeHTTP(w, req)
+		body , _ := ioutil.ReadAll(req.Body)
+		content := string((body))
+		fmt.Println("This is the body", string(content))
 		return
 	}
+
+	body , _ := ioutil.ReadAll(req.Body)
+	fmt.Println("This is the body", string(body))
 
 	bw := &bufferWriter{header: make(http.Header), buffer: &bytes.Buffer{}}
 	newBody := &bytes.Buffer{}
