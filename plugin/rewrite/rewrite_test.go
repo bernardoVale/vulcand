@@ -113,10 +113,11 @@ func (s *RewriteSuite) TestRewriteNoMatch(c *C) {
 	srv := httptest.NewServer(rh)
 	defer srv.Close()
 
-	re, _, err := testutils.Get(srv.URL+"/fooo/bar", testutils.Host("localhost"))
+	re, body, err := testutils.Get(srv.URL+"/fooo/bar", testutils.Host("localhost"))
 	c.Assert(err, IsNil)
 	c.Assert(re.StatusCode, Equals, http.StatusOK)
 	c.Assert(outURL, Equals, "http://localhost/fooo/bar")
+	c.Assert(string(body), Equals, "hello")
 }
 
 //The object of this test is to ensure that if the rewrite doesn't match the regex
