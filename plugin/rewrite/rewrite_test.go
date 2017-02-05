@@ -11,7 +11,6 @@ import (
 	"github.com/vulcand/oxy/testutils"
 	"github.com/vulcand/vulcand/plugin"
 	. "gopkg.in/check.v1"
-	"io/ioutil"
 )
 
 func TestRL(t *testing.T) { TestingT(t) }
@@ -85,18 +84,17 @@ func (s *RewriteSuite) TestRewriteMatch(c *C) {
 		w.Write([]byte("hello"))
 	})
 
-	rh, err := newRewriteHandler(handler, &Rewrite{"^http://localhost/foo(.*)", "http://localhost$1", false, false})
+	rh, err := newRewriteHandler(handler, &Rewrite{"^http://localhost/foo(.*)", "https://localhost$1", false, false})
 	c.Assert(rh, NotNil)
 	c.Assert(err, IsNil)
 
 	srv := httptest.NewServer(rh)
 	defer srv.Close()
 
-	re, _, err := testutils.Get(srv.URL+"/foo/bar", testutils.Host("localhost"))
+	re, body, err := testutils.Get(srv.URL+"/foo/bar", testutils.Host("localhost"))
 	c.Assert(err, IsNil)
 	c.Assert(re.StatusCode, Equals, http.StatusOK)
 	c.Assert(outURL, Equals, "http://localhost/bar")
-	body, err := ioutil.ReadAll(re.Request.Body)
 	c.Assert(string(body), Equals, string("hello"))
 	c.Assert(err, IsNil)
 }
